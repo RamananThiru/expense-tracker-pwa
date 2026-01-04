@@ -95,9 +95,14 @@ export function AnalyticsPage() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="amount"
+                  nameKey="category"
                 >
                   {categoryBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.fill} 
+                      style={{ outline: "none" }}
+                    />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
