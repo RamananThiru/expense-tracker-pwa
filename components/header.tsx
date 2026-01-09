@@ -1,6 +1,6 @@
 "use client"
 
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export function Header({ currentPath }: HeaderProps) {
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const getHeaderTitle = (path: string) => {
     switch (path) {
@@ -26,7 +26,7 @@ export function Header({ currentPath }: HeaderProps) {
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="flex items-center justify-between h-16 px-4">
         {/* Back button */}
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="hover:bg-muted">
+        <Button variant="ghost" size="icon" onClick={() => router.push("/")} className="hover:bg-muted">
           <ChevronLeft className="h-5 w-5" />
           <span className="sr-only">Go back</span>
         </Button>

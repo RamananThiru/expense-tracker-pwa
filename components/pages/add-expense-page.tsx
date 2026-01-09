@@ -1,8 +1,9 @@
+
 "use client"
 
 import type React from "react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import {
   Select,
@@ -55,7 +56,7 @@ interface FormErrors {
 }
 
 export function AddExpensePage() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const [errors, setErrors] = useState<FormErrors>({})
   const [formData, setFormData] = useState({
     amount: "",
@@ -126,14 +127,14 @@ export function AddExpensePage() {
     })
     setErrors({})
     // Navigate back to home
-    navigate("/")
+    router.push("/")
   }
 
   return (
     <div className="min-h-screen bg-background overflow-auto pb-20">
       <div className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3 flex items-center justify-end">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => router.push("/")}
           className="p-2 hover:bg-muted rounded-lg transition-colors"
           aria-label="Close form"
         >

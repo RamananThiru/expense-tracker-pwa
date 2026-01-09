@@ -1,6 +1,6 @@
 "use client"
 
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Home, Plus, PieChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -38,7 +38,7 @@ export function BottomNavigation({ currentPath }: BottomNavigationProps) {
           return (
             <Link
               key={item.path}
-              to={item.path}
+              href={item.path}
               className={cn(
                 "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
                 isAddButton

@@ -1,11 +1,11 @@
-                                          "use client"
-import { useNavigate } from "react-router-dom"
+"use client"
+import { useRouter } from "next/navigation"
 import { ExpenseSummaryCard } from "@/components/expense-summary-card"
 import { ExpenseListItem } from "@/components/expense-list-item"
 import { getCategoryColor } from "@/lib/constants/category-colors"
 
 export function HomePage() {
-  const navigate = useNavigate()
+  const router = useRouter()
 
   // Mock expense data
   const recentExpenses = [
@@ -77,7 +77,7 @@ export function HomePage() {
         {/* Main Content */}
         <div className="px-4 pt-4">
           {/* Analytics Preview Card */}
-          <ExpenseSummaryCard totalAmount={monthlyTotal} onClick={() => navigate("/analytics")} />
+          <ExpenseSummaryCard totalAmount={monthlyTotal} onClick={() => router.push("/analytics")} />
 
           {/* Recent Expenses Section */}
           <div className="mb-8">
