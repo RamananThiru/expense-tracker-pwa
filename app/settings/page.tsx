@@ -3,18 +3,22 @@ import { createClient } from "@/utils/supabase/server";
 import { Suspense } from "react";
 import { AppLayout } from "@/components/app-layout";
 
-async function InstrumentsData() {
+async function CategoriesData() {
   const supabase = await createClient();
-  const { data: instruments } = await supabase.from("instruments").select();
+  const { data: categories, error } = await supabase.from("categories").select();
 
-  return <pre>{JSON.stringify(instruments, null, 2)}</pre>;
+  if (error) {
+    return <pre className="text-red-500">Error: {JSON.stringify(error, null, 2)}</pre>;
+  }
+
+  return <pre>{JSON.stringify(categories, null, 2)}</pre>;
 }
 
 export default function SettingsPage() {
   return (
     <AppLayout>
-      <Suspense fallback={<div>Loading instruments...</div>}>
-         <InstrumentsData />
+      <Suspense fallback={<div>Loading categories...</div>}>
+         <CategoriesData />
       </Suspense>
     </AppLayout>
   );
