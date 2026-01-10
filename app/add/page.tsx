@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { X } from "lucide-react"
+import { X, Loader2 } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -13,18 +13,8 @@ import {
 } from "@/components/ui/select"
 import { ExpensePriority, PRIORITY_LABELS, ALL_PRIORITIES } from "@/lib/constants/expense-priority"
 import { PaymentType, PAYMENT_TYPE_LABELS, ALL_PAYMENT_TYPES } from "@/lib/constants/payment-type"
-
-const CATEGORIES = ["Food", "Shopping", "Travel", "Entertainment", "Health", "Utilities", "Other"]
-
-const SUB_CATEGORIES = {
-  Food: ["Groceries", "Dining Out", "Coffee", "Online Order"],
-  Shopping: ["Clothes", "Electronics", "Home"],
-  Travel: ["Transport", "Fuel", "Accommodation"],
-  Entertainment: ["Movies", "Games", "Events"],
-  Health: ["Medicine", "Gym", "Checkup"],
-  Utilities: ["Electricity", "Water", "Internet"],
-  Other: ["Misc"],
-}
+import { createExpense } from "@/lib/api/expenses"
+import type { Category, SubCategory, ExpenseInsert } from "@/lib/types/database.types"
 
 const PLACEHOLDER_MAP: Record<string, Record<string, string>> = {
   Food: {
@@ -66,47 +56,162 @@ const PLACEHOLDER_MAP: Record<string, Record<string, string>> = {
 export default function AddExpensePage() {
   const router = useRouter()
   const amountInputRef = useRef<HTMLInputElement>(null)
+  
+  // Form state
   const [amount, setAmount] = useState("")
-  const [category, setCategory] = useState("Food")
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentType>(PaymentType.UPI)
-  const [subCategory, setSubCategory] = useState(SUB_CATEGORIES["Food"][0])
   const [description, setDescription] = useState("")
   const [date, setDate] = useState(new Date().toISOString().split("T")[0])
   const [priority, setPriority] = useState<ExpensePriority>(ExpensePriority.NEED)
   const [isVacation, setIsVacation] = useState(false)
   const [isEMI, setIsEMI] = useState(false)
 
+  // Data state
+  const [categories, setCategories] = useState<Category[]>([])
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+
+  // Loading and error states
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
+  const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [categoriesError, setCategoriesError] = useState<string | null>(null)
+  const [subCategoriesError, setSubCategoriesError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Fetch categories on mount
   useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true)
+        setCategoriesError(null)
+        
+        const response = await fetch('/api/categories')
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories')
+        }
+        
+        const data = await response.json()
+        setCategories(data)
+        
+        // Auto-select first category
+        if (data.length > 0) {
+          setSelectedCategory(data[0])
+        }
+      } catch (error) {
+        console.error("Error loading categories:", error)
+        setCategoriesError("Failed to load categories. Please refresh the page.")
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    loadCategories()
     amountInputRef.current?.focus()
   }, [])
 
-  const handleCategoryChange = (newCategory: string) => {
-    setCategory(newCategory)
-    setSubCategory(SUB_CATEGORIES[newCategory as keyof typeof SUB_CATEGORIES][0])
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    const loadSubCategories = async () => {
+      if (!selectedCategory) {
+        setSubCategories([])
+        setSelectedSubCategory(null)
+        return
+      }
+
+      try {
+        setIsLoadingSubCategories(true)
+        setSubCategoriesError(null)
+        
+        const response = await fetch(`/api/subcategories?categoryId=${selectedCategory.id}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch subcategories')
+        }
+        
+        const data = await response.json()
+        setSubCategories(data)
+        
+        // Auto-select first subcategory
+        if (data.length > 0) {
+          setSelectedSubCategory(data[0])
+        } else {
+          setSelectedSubCategory(null)
+        }
+      } catch (error) {
+        console.error("Error loading subcategories:", error)
+        setSubCategoriesError("Failed to load subcategories.")
+        setSubCategories([])
+        setSelectedSubCategory(null)
+      } finally {
+        setIsLoadingSubCategories(false)
+      }
+    }
+
+    loadSubCategories()
+  }, [selectedCategory])
+
+  const handleCategoryChange = (categoryId: string) => {
+    const category = categories.find(c => c.id === Number(categoryId))
+    if (category) {
+      setSelectedCategory(category)
+    }
+  }
+
+  const handleSubCategoryChange = (subCategoryId: string) => {
+    const subCategory = subCategories.find(sc => sc.id === Number(subCategoryId))
+    if (subCategory) {
+      setSelectedSubCategory(subCategory)
+    }
   }
 
   const getDescriptionPlaceholder = (): string => {
-    return PLACEHOLDER_MAP[category]?.[subCategory] || "Add notes about this expense..."
+    if (!selectedCategory || !selectedSubCategory) {
+      return "Add notes about this expense..."
+    }
+    
+    const categoryCode = selectedCategory.code
+    const subCategoryCode = selectedSubCategory.code
+    
+    return PLACEHOLDER_MAP[categoryCode]?.[subCategoryCode] || "Add notes about this expense..."
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // TODO: Add Supabase POST call here to save the expense
-    console.log("Expense to be saved:", {
-      amount,
-      category,
-      subCategory,
-      priority,
-      paymentMethod,
-      description,
-      date,
-      isVacation,
-      isEMI,
-    })
-    
-    // Navigate back to home after saving
-    router.push("/")
+    if (!selectedCategory || !selectedSubCategory) {
+      setSubmitError("Please select a category and subcategory")
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setSubmitError(null)
+
+      const expenseData: ExpenseInsert = {
+        amount: parseFloat(amount),
+        expense_date: date,
+        category_id: selectedCategory.id,
+        sub_category_id: selectedSubCategory.id,
+        description: description.trim() || null,
+        item_name: null,
+        notes: null,
+        priority: priority,
+        payment_type: paymentMethod,
+        is_emi: isEMI,
+        is_vacation: isVacation,
+      }
+
+      await createExpense(expenseData)
+      
+      // Navigate back to home after successful save
+      router.push("/")
+    } catch (error) {
+      console.error("Error saving expense:", error)
+      setSubmitError(error instanceof Error ? error.message : "Failed to save expense. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleCancel = () => {
@@ -132,19 +237,42 @@ export default function AddExpensePage() {
 
       {/* Form - Scrollable main content */}
       <form onSubmit={handleSubmit} className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
+        {/* Error Messages */}
+        {categoriesError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {categoriesError}
+          </div>
+        )}
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {submitError}
+          </div>
+        )}
+
         {/* Row 1: Category and Sub-category on one line */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
           {/* Category */}
           <div>
             <label className="text-xs font-semibold text-card-foreground block mb-1">Category</label>
-            <Select value={category} onValueChange={handleCategoryChange}>
+            <Select 
+              value={selectedCategory?.id.toString()} 
+              onValueChange={handleCategoryChange}
+              disabled={isLoadingCategories}
+            >
               <SelectTrigger className="w-full h-10 px-2.5 bg-secondary text-card-foreground border-border text-sm">
-                <SelectValue placeholder="Select category" />
+                {isLoadingCategories ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  <SelectValue placeholder="Select category" />
+                )}
               </SelectTrigger>
               <SelectContent className="max-h-[300px] overflow-y-auto" sideOffset={0}>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                    {cat.code}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -154,18 +282,32 @@ export default function AddExpensePage() {
           {/* Sub-category */}
           <div>
             <label className="text-xs font-semibold text-card-foreground block mb-1">Sub-category</label>
-            <Select value={subCategory} onValueChange={setSubCategory}>
+            <Select 
+              value={selectedSubCategory?.id.toString()} 
+              onValueChange={handleSubCategoryChange}
+              disabled={isLoadingSubCategories || !selectedCategory}
+            >
               <SelectTrigger className="w-full h-10 px-2.5 bg-secondary text-card-foreground border-border text-sm">
-                <SelectValue placeholder="Select sub-category" />
+                {isLoadingSubCategories ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  <SelectValue placeholder="Select sub-category" />
+                )}
               </SelectTrigger>
               <SelectContent className="max-h-[300px] overflow-y-auto" sideOffset={0}>
-                {SUB_CATEGORIES[category as keyof typeof SUB_CATEGORIES].map((sub) => (
-                  <SelectItem key={sub} value={sub}>
-                    {sub}
+                {subCategories.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.id.toString()}>
+                    {sub.code}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {subCategoriesError && (
+              <p className="text-xs text-red-600 mt-1">{subCategoriesError}</p>
+            )}
           </div>
         </div>
 
@@ -282,7 +424,8 @@ export default function AddExpensePage() {
           <button
             type="button"
             onClick={handleCancel}
-            className="flex-1 py-3 sm:py-2.5 px-4 bg-secondary text-card-foreground font-semibold rounded-lg hover:bg-secondary/80 transition-colors text-sm min-h-12 border border-border"
+            disabled={isSubmitting}
+            className="flex-1 py-3 sm:py-2.5 px-4 bg-secondary text-card-foreground font-semibold rounded-lg hover:bg-secondary/80 transition-colors text-sm min-h-12 border border-border disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -293,10 +436,17 @@ export default function AddExpensePage() {
               const form = document.querySelector("form") as HTMLFormElement
               form?.requestSubmit()
             }}
-            disabled={!amount}
-            className="flex-1 py-3 sm:py-2.5 px-4 bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm min-h-12"
+            disabled={!amount || isSubmitting || isLoadingCategories || !selectedCategory || !selectedSubCategory}
+            className="flex-1 py-3 sm:py-2.5 px-4 bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm min-h-12 flex items-center justify-center gap-2"
           >
-            Add Expense
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Add Expense"
+            )}
           </button>
         </div>
       </div>
