@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { AppLayout } from "@/components/app-layout"
 import { X } from "lucide-react"
 import {
   Select,
@@ -12,273 +11,295 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ExpensePriority, PRIORITY_LABELS, ALL_PRIORITIES } from "@/lib/constants/expense-priority"
+import { PaymentType, PAYMENT_TYPE_LABELS, ALL_PAYMENT_TYPES } from "@/lib/constants/payment-type"
 
-const CATEGORIES_DATA: Record<string, { label: string; subcategories: string[] }> = {
-  Food: {
-    label: "Food",
-    subcategories: ["Groceries", "Dining Out", "Coffee"],
-  },
-  Transport: {
-    label: "Transport",
-    subcategories: ["Fuel", "Public Transit", "Taxi"],
-  },
-  Housing: {
-    label: "Housing",
-    subcategories: ["Rent", "Utilities", "Maintenance"],
-  },
-  Entertainment: {
-    label: "Entertainment",
-    subcategories: ["Movies", "Games", "Events"],
-  },
-  Health: {
-    label: "Health",
-    subcategories: ["Medicine", "Doctor", "Fitness"],
-  },
-  Shopping: {
-    label: "Shopping",
-    subcategories: ["Clothing", "Electronics", "Home"],
-  },
-  Bills: {
-    label: "Bills",
-    subcategories: ["Internet", "Phone", "Insurance"],
-  },
-  Other: {
-    label: "Other",
-    subcategories: ["Miscellaneous"],
-  },
+const CATEGORIES = ["Food", "Shopping", "Travel", "Entertainment", "Health", "Utilities", "Other"]
+
+const SUB_CATEGORIES = {
+  Food: ["Groceries", "Dining Out", "Coffee", "Online Order"],
+  Shopping: ["Clothes", "Electronics", "Home"],
+  Travel: ["Transport", "Fuel", "Accommodation"],
+  Entertainment: ["Movies", "Games", "Events"],
+  Health: ["Medicine", "Gym", "Checkup"],
+  Utilities: ["Electricity", "Water", "Internet"],
+  Other: ["Misc"],
 }
 
-interface FormErrors {
-  amount?: string
-  category?: string
-  subcategory?: string
-  date?: string
+const PLACEHOLDER_MAP: Record<string, Record<string, string>> = {
+  Food: {
+    Groceries: "Items purchased (e.g., milk, vegetables, rice)",
+    "Dining Out": "Restaurant name, dishes ordered",
+    Coffee: "Cafe name, drink type",
+    "Online Order": "Merchant name, dishes/items ordered",
+  },
+  Shopping: {
+    Clothes: "Brand, type of clothing, size",
+    Electronics: "Device name, brand, specifications",
+    Home: "Item name, room, purpose",
+  },
+  Travel: {
+    Transport: "Route, vehicle type, distance",
+    Fuel: "Fuel type, quantity, liters",
+    Accommodation: "Hotel/place name, location, nights",
+  },
+  Entertainment: {
+    Movies: "Movie name, theater, number of tickets",
+    Games: "Game name, platform",
+    Events: "Event name, venue, type",
+  },
+  Health: {
+    Medicine: "Medicine names, dosage, quantity",
+    Gym: "Gym name, membership type, duration",
+    Checkup: "Doctor name, clinic, test type",
+  },
+  Utilities: {
+    Electricity: "Bill period, units consumed",
+    Water: "Bill period, units consumed",
+    Internet: "Provider name, plan type, speed",
+  },
+  Other: {
+    Misc: "Details about the expense",
+  },
 }
 
 export default function AddExpensePage() {
   const router = useRouter()
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [formData, setFormData] = useState({
-    amount: "",
-    date: new Date().toISOString().split("T")[0],
-    category: "Food",
-    subcategory: "Groceries",
-    description: "",
-  })
+  const amountInputRef = useRef<HTMLInputElement>(null)
+  const [amount, setAmount] = useState("")
+  const [category, setCategory] = useState("Food")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentType>(PaymentType.UPI)
+  const [subCategory, setSubCategory] = useState(SUB_CATEGORIES["Food"][0])
+  const [description, setDescription] = useState("")
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+  const [priority, setPriority] = useState<ExpensePriority>(ExpensePriority.NEED)
+  const [isVacation, setIsVacation] = useState(false)
+  const [isEMI, setIsEMI] = useState(false)
 
-  const subcategories = CATEGORIES_DATA[formData.category]?.subcategories || []
+  useEffect(() => {
+    amountInputRef.current?.focus()
+  }, [])
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
-      newErrors.amount = "Amount must be greater than 0"
-    }
-    if (!formData.category) {
-      newErrors.category = "Please select a category"
-    }
-    if (!formData.subcategory) {
-      newErrors.subcategory = "Please select a subcategory"
-    }
-    if (!formData.date) {
-      newErrors.date = "Please select a date"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory)
+    setSubCategory(SUB_CATEGORIES[newCategory as keyof typeof SUB_CATEGORIES][0])
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-    if (errors[name as keyof FormErrors]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: undefined,
-      }))
-    }
-  }
-
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCategory = e.target.value
-    const firstSubcategory = CATEGORIES_DATA[newCategory]?.subcategories[0] || ""
-    setFormData((prev) => ({
-      ...prev,
-      category: newCategory,
-      subcategory: firstSubcategory,
-    }))
+  const getDescriptionPlaceholder = (): string => {
+    return PLACEHOLDER_MAP[category]?.[subCategory] || "Add notes about this expense..."
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validateForm()) return
-
-    console.log("Expense added:", formData)
-    // Reset form
-    setFormData({
-      amount: "",
-      date: new Date().toISOString().split("T")[0],
-      category: "Food",
-      subcategory: "Groceries",
-      description: "",
+    
+    // TODO: Add Supabase POST call here to save the expense
+    console.log("Expense to be saved:", {
+      amount,
+      category,
+      subCategory,
+      priority,
+      paymentMethod,
+      description,
+      date,
+      isVacation,
+      isEMI,
     })
-    setErrors({})
-    // Navigate back to home
+    
+    // Navigate back to home after saving
+    router.push("/")
+  }
+
+  const handleCancel = () => {
     router.push("/")
   }
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-background overflow-auto pb-20">
-        <div className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3 flex items-center justify-end">
-          <button
-            onClick={() => router.push("/")}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-            aria-label="Close form"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header with Cancel button */}
+      <div className="bg-card border-b border-border p-4 sm:p-6 flex items-center justify-between">
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground">Add Expense</h1>
+          <p className="text-sm text-muted-foreground mt-1">Quick and easy expense tracking</p>
         </div>
+        <button
+          onClick={handleCancel}
+          className="p-2 hover:bg-muted rounded-lg transition-colors"
+          aria-label="Cancel"
+        >
+          <X className="h-6 w-6" />
+        </button>
+      </div>
 
-        {/* Form container */}
-        <div className="flex-1 w-full max-w-lg mx-auto px-4 py-6 space-y-8">
-          {/* Header */}
+      {/* Form - Scrollable main content */}
+      <form onSubmit={handleSubmit} className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
+        {/* Row 1: Category and Sub-category on one line */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          {/* Category */}
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Add Expense</h1>
-            <p className="text-sm text-muted-foreground mt-1">Track your spending</p>
+            <label className="text-xs font-semibold text-card-foreground block mb-1">Category</label>
+            <Select value={category} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-full h-10 px-2.5 bg-secondary text-card-foreground border-border text-sm">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px] overflow-y-auto" sideOffset={0}>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Amount - Large & Prominent */}
-            <div className="space-y-3">
-              <label htmlFor="amount" className="text-sm font-semibold text-foreground">
-                Amount
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-foreground">₹</span>
-                <input
-                  id="amount"
-                  name="amount"
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="0"
-                  step="0.01"
-                  min="0"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  className={`w-full pl-10 pr-4 py-4 text-3xl font-bold border-2 rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${
-                    errors.amount ? "border-red-500 bg-red-50/30" : "border-border"
-                  }`}
-                />
-              </div>
-              {errors.amount && <p className="text-sm text-red-500">{errors.amount}</p>}
-            </div>
+          {/* Sub-category */}
+          <div>
+            <label className="text-xs font-semibold text-card-foreground block mb-1">Sub-category</label>
+            <Select value={subCategory} onValueChange={setSubCategory}>
+              <SelectTrigger className="w-full h-10 px-2.5 bg-secondary text-card-foreground border-border text-sm">
+                <SelectValue placeholder="Select sub-category" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px] overflow-y-auto" sideOffset={0}>
+                {SUB_CATEGORIES[category as keyof typeof SUB_CATEGORIES].map((sub) => (
+                  <SelectItem key={sub} value={sub}>
+                    {sub}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-            {/* Date Picker */}
-            <div className="space-y-3">
-              <label htmlFor="date" className="text-sm font-semibold text-foreground">
-                Date
-              </label>
+        {/* Row 2: Amount (40%) and Description (60%) on same line */}
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          {/* Amount - 40% (2 of 5 cols) */}
+          <div className="col-span-2">
+            <label className="text-xs font-semibold text-card-foreground block mb-1">Amount</label>
+            <div className="relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted-foreground">
+                ₹
+              </span>
               <input
-                id="date"
-                name="date"
-                type="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-3 border-2 rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer ${
-                  errors.date ? "border-red-500 bg-red-50/30" : "border-border"
+                ref={amountInputRef}
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                className="w-full pl-8 pr-2 py-2.5 sm:py-2 bg-secondary text-card-foreground placeholder-muted-foreground rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-semibold min-h-10"
+                inputMode="decimal"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Description - 60% (3 of 5 cols) */}
+          <div className="col-span-3">
+            <label className="text-xs font-semibold text-card-foreground block mb-1">Description / Merchant</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={getDescriptionPlaceholder()}
+              className="w-full px-3 py-2.5 sm:py-2 bg-secondary text-card-foreground placeholder-muted-foreground rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm min-h-10"
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Priority */}
+        <div>
+          <label className="text-xs font-semibold text-card-foreground block mb-2">Priority</label>
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+            {ALL_PRIORITIES.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPriority(p)}
+                className={`py-2.5 sm:py-2 px-1 rounded-lg text-xs font-medium transition-all min-h-10 flex items-center justify-center ${
+                  priority === p
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-secondary text-card-foreground border border-border hover:border-primary"
                 }`}
-              />
-              {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
-            </div>
-
-            {/* Category Select */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">
-                Category
-              </label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => {
-                  const firstSubcategory = CATEGORIES_DATA[value]?.subcategories[0] || ""
-                  setFormData(prev => ({
-                    ...prev,
-                    category: value,
-                    subcategory: firstSubcategory
-                  }))
-                }}
               >
-                <SelectTrigger className={`w-full h-12 px-4 text-base bg-muted/50 border-2 ${errors.category ? "border-red-500" : "border-border"}`}>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORIES_DATA).map(([key, { label }]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.category && <p className="text-sm text-red-500">{errors.category}</p>}
-            </div>
+                {PRIORITY_LABELS[p]}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            {/* Subcategory Select */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">
-                Subcategory
-              </label>
-              <Select
-                value={formData.subcategory}
-                onValueChange={(value) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    subcategory: value
-                  }))
-                }}
-              >
-                <SelectTrigger className={`w-full h-12 px-4 text-base bg-muted/50 border-2 ${errors.subcategory ? "border-red-500" : "border-border"}`}>
-                  <SelectValue placeholder="Select subcategory" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategories.map((sub) => (
-                    <SelectItem key={sub} value={sub}>
-                      {sub}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.subcategory && <p className="text-sm text-red-500">{errors.subcategory}</p>}
-            </div>
+        {/* Row 4: Payment Methods */}
+        <div>
+          <label className="text-xs font-semibold text-card-foreground block mb-1">Payment Method</label>
+          <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentType)}>
+            <SelectTrigger className="w-full h-10 px-2.5 bg-secondary text-card-foreground border-border text-sm">
+              <SelectValue placeholder="Select payment method" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px] overflow-y-auto" sideOffset={0}>
+              {ALL_PAYMENT_TYPES.map((method) => (
+                <SelectItem key={method} value={method}>
+                  {PAYMENT_TYPE_LABELS[method]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            {/* Description Textarea - Optional */}
-            <div className="space-y-3">
-              <label htmlFor="description" className="text-sm font-semibold text-foreground">
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                placeholder="Add note..."
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-4 py-3 border-2 border-border rounded-lg bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
-              />
-            </div>
+        {/* Row 5: Date */}
+        <div>
+          <label className="text-xs font-semibold text-card-foreground block mb-1">Date</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full px-2.5 py-2.5 bg-secondary text-card-foreground rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-xs min-h-10"
+          />
+        </div>
 
-            {/* Submit Button - Full Width at Bottom */}
-            <button
-              type="submit"
-              className="w-full py-4 mt-8 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 active:scale-95 transition-all touch-target"
-            >
-              Save Expense
-            </button>
-          </form>
+        {/* Row 6: Checkboxes - EMI and Vacation */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isVacation}
+              onChange={(e) => setIsVacation(e.target.checked)}
+              className="w-5 h-5 rounded bg-secondary border border-border accent-primary cursor-pointer"
+            />
+            <span className="text-xs sm:text-sm font-medium text-card-foreground">Vacation</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isEMI}
+              onChange={(e) => setIsEMI(e.target.checked)}
+              className="w-5 h-5 rounded bg-secondary border border-border accent-primary cursor-pointer"
+            />
+            <span className="text-xs sm:text-sm font-medium text-card-foreground">EMI</span>
+          </label>
+        </div>
+      </form>
+
+      {/* Action Buttons - Fixed at bottom */}
+      <div className="bg-card border-t border-border p-4 sm:p-6">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="flex-1 py-3 sm:py-2.5 px-4 bg-secondary text-card-foreground font-semibold rounded-lg hover:bg-secondary/80 transition-colors text-sm min-h-12 border border-border"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            onClick={(e) => {
+              e.preventDefault()
+              const form = document.querySelector("form") as HTMLFormElement
+              form?.requestSubmit()
+            }}
+            disabled={!amount}
+            className="flex-1 py-3 sm:py-2.5 px-4 bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm min-h-12"
+          >
+            Add Expense
+          </button>
         </div>
       </div>
-    </AppLayout>
+    </div>
   )
 }

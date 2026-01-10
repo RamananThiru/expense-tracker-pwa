@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation"
 import { AppLayout } from "@/components/app-layout"
-import { ExpenseSummaryCard } from "@/components/expense-summary-card"
 import { ExpenseListItem } from "@/components/expense-list-item"
 import { getCategoryColor } from "@/lib/constants/category-colors"
 
@@ -79,9 +78,6 @@ export default function HomePage() {
 
           {/* Main Content */}
           <div className="px-4 pt-4">
-            {/* Analytics Preview Card */}
-            <ExpenseSummaryCard totalAmount={monthlyTotal} onClick={() => router.push("/analytics")} />
-
             {/* Recent Expenses Section */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>
