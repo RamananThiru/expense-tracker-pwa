@@ -36,32 +36,9 @@ export const getDB = () => {
     dbPromise = openDB<ExpenseTrackerDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion, newVersion, transaction) {
         console.log(`[DB] Upgrading from ${oldVersion} to ${newVersion}`);
-        // Categories
-        if (!db.objectStoreNames.contains('categories')) {
-          db.createObjectStore('categories', { keyPath: 'id' });
-        }
-
-        // Subcategories
-        if (!db.objectStoreNames.contains('subcategories')) {
-          const subStore = db.createObjectStore('subcategories', { keyPath: 'id' });
-          subStore.createIndex('by-category', 'category_id');
-        }
-
-        // Expenses
-        if (!db.objectStoreNames.contains('expenses')) {
-          const expenseStore = db.createObjectStore('expenses', {
-            keyPath: 'local_id',
-            autoIncrement: true
-          });
-          expenseStore.createIndex('by-synced', 'synced');
-          expenseStore.createIndex('by-date', 'expense_date');
-        } else {
-          // Upgrade logic for existing store if needed
-          const store = transaction.objectStore('expenses');
-          if (!store.indexNames.contains('by-synced')) {
-            store.createIndex('by-synced', 'synced');
-          }
-        }
+        setupCategories(db);
+        setupSubcategories(db);
+        setupExpenses(db, transaction);
       },
       blocked(currentVersion, blockedVersion, event) {
         console.error(`[DB] Database upgrade blocked! Current: ${currentVersion}, Blocked: ${blockedVersion}. Please close other tabs.`)
@@ -79,3 +56,36 @@ export const getDB = () => {
   }
   return dbPromise;
 };
+
+// --- Helpers ---
+
+function setupCategories(db: IDBPDatabase<ExpenseTrackerDB>) {
+  if (!db.objectStoreNames.contains('categories')) {
+    db.createObjectStore('categories', { keyPath: 'id' });
+  }
+}
+
+function setupSubcategories(db: IDBPDatabase<ExpenseTrackerDB>) {
+  if (!db.objectStoreNames.contains('subcategories')) {
+    const subStore = db.createObjectStore('subcategories', { keyPath: 'id' });
+    subStore.createIndex('by-category', 'category_id');
+  }
+}
+
+function setupExpenses(db: IDBPDatabase<ExpenseTrackerDB>, tx: any) {
+  if (!db.objectStoreNames.contains('expenses')) {
+    const expenseStore = db.createObjectStore('expenses', {
+      keyPath: 'local_id',
+      autoIncrement: true
+    });
+    expenseStore.createIndex('by-synced', 'synced');
+    expenseStore.createIndex('by-date', 'expense_date');
+  } else {
+    // Upgrade logic for existing store if needed
+    const store = tx.objectStore('expenses');
+    if (!store.indexNames.contains('by-synced')) {
+      store.createIndex('by-synced', 'synced');
+    }
+  }
+}
+
