@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select"
 import { ExpensePriority, PRIORITY_LABELS, ALL_PRIORITIES } from "@/lib/constants/expense-priority"
 import { PaymentType, PAYMENT_TYPE_LABELS, ALL_PAYMENT_TYPES } from "@/lib/constants/payment-type"
-import { createExpense } from "@/lib/api/expenses"
+import { useReferenceData, useSubCategories } from "@/hooks/use-reference-data"
+import { useExpenses } from "@/hooks/use-expenses"
 import type { Category, SubCategory, ExpenseInsert } from "@/lib/types/database.types"
 
 const PLACEHOLDER_MAP: Record<string, Record<string, string>> = {
@@ -57,6 +58,10 @@ export default function AddExpensePage() {
   const router = useRouter()
   const amountInputRef = useRef<HTMLInputElement>(null)
   
+  // Hooks
+  const { categories, isLoading: isLoadingCategories, refreshReferenceData } = useReferenceData()
+  const { addExpense } = useExpenses()
+  
   // Form state
   const [amount, setAmount] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
@@ -68,93 +73,40 @@ export default function AddExpensePage() {
   const [isVacation, setIsVacation] = useState(false)
   const [isEMI, setIsEMI] = useState(false)
 
-  // Data state
-  const [categories, setCategories] = useState<Category[]>([])
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([])
+  // Derived state from hooks
+  const { subCategories, isLoading: isLoadingSubCategories } = useSubCategories(selectedCategory?.id || null)
 
-  // Loading and error states
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
-  const [isLoadingSubCategories, setIsLoadingSubCategories] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [categoriesError, setCategoriesError] = useState<string | null>(null)
-  const [subCategoriesError, setSubCategoriesError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // Fetch categories on mount
+  // Focus input on mount
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setIsLoadingCategories(true)
-        setCategoriesError(null)
-        
-        const response = await fetch('/api/categories')
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories')
-        }
-        
-        const data = await response.json()
-        setCategories(data)
-        
-        // Auto-select first category
-        if (data.length > 0) {
-          setSelectedCategory(data[0])
-        }
-      } catch (error) {
-        console.error("Error loading categories:", error)
-        setCategoriesError("Failed to load categories. Please refresh the page.")
-      } finally {
-        setIsLoadingCategories(false)
-      }
-    }
-
-    loadCategories()
     amountInputRef.current?.focus()
   }, [])
-
-  // Fetch subcategories when category changes
+  
+  // Auto-select first category if available and none selected
   useEffect(() => {
-    const loadSubCategories = async () => {
-      if (!selectedCategory) {
-        setSubCategories([])
-        setSelectedSubCategory(null)
-        return
-      }
-
-      try {
-        setIsLoadingSubCategories(true)
-        setSubCategoriesError(null)
-        
-        const response = await fetch(`/api/subcategories?categoryId=${selectedCategory.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch subcategories')
-        }
-        
-        const data = await response.json()
-        setSubCategories(data)
-        
-        // Auto-select first subcategory
-        if (data.length > 0) {
-          setSelectedSubCategory(data[0])
-        } else {
-          setSelectedSubCategory(null)
-        }
-      } catch (error) {
-        console.error("Error loading subcategories:", error)
-        setSubCategoriesError("Failed to load subcategories.")
-        setSubCategories([])
-        setSelectedSubCategory(null)
-      } finally {
-        setIsLoadingSubCategories(false)
-      }
+    if (!selectedCategory && categories.length > 0) {
+      setSelectedCategory(categories[0])
     }
-
-    loadSubCategories()
-  }, [selectedCategory])
+  }, [categories, selectedCategory])
+  
+  // Auto-select first subcategory
+  useEffect(() => {
+    if (subCategories.length > 0) {
+       setSelectedSubCategory(subCategories[0])
+    } else {
+       setSelectedSubCategory(null)
+    }
+  }, [subCategories])
 
   const handleCategoryChange = (categoryId: string) => {
     const category = categories.find(c => c.id === Number(categoryId))
     if (category) {
       setSelectedCategory(category)
+      // Reset subcategory will be handled by auto-select effect or manually here?
+      // Better to clear it immediately to avoid mismatched state
+      setSelectedSubCategory(null)
     }
   }
 
@@ -202,9 +154,9 @@ export default function AddExpensePage() {
         is_vacation: isVacation,
       }
 
-      await createExpense(expenseData)
+      await addExpense(expenseData)
       
-      // Navigate back to home after successful save
+      // Navigate back to home after successful save (local save is instant)
       router.push("/")
     } catch (error) {
       console.error("Error saving expense:", error)
@@ -238,15 +190,17 @@ export default function AddExpensePage() {
       {/* Form - Scrollable main content */}
       <form onSubmit={handleSubmit} className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
         {/* Error Messages */}
-        {categoriesError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {categoriesError}
-          </div>
-        )}
         {submitError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {submitError}
           </div>
+        )}
+
+        {/* Categories Refresh Hint (Optional) */}
+        {categories.length === 0 && !isLoadingCategories && (
+             <div className="text-xs text-center text-muted-foreground p-2">
+                 No categories found. Sync the app to download them.
+             </div>
         )}
 
         {/* Row 1: Category and Sub-category on one line */}
@@ -305,9 +259,6 @@ export default function AddExpensePage() {
                 ))}
               </SelectContent>
             </Select>
-            {subCategoriesError && (
-              <p className="text-xs text-red-600 mt-1">{subCategoriesError}</p>
-            )}
           </div>
         </div>
 
