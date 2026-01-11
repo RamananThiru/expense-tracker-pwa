@@ -18,6 +18,11 @@ export default function HomePage() {
   const { expenses, isLoading: loadingExpenses, refreshExpenses } = useExpenses()
   const { categories, isLoading: loadingCategories } = useReferenceData()
   const { sync, isSyncing, lastSyncTime, error: syncError } = useSync()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Auto-sync only once on mount
   // TEMPORARILY DISABLED: To stop loop/crash. Manual sync only.
@@ -74,10 +79,9 @@ export default function HomePage() {
                 <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin text-primary" : "text-muted-foreground"}`} />
                 {syncError && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />}
               </button>
-              <SyncLinkCard />
             </div>
             {/* Minimal Sync Status */}
-            {(syncError || lastSyncTime) && (
+            {(syncError || (mounted && lastSyncTime)) && (
               <div className="px-6 pb-2 text-xs text-muted-foreground flex items-center justify-end gap-1">
                  {syncError ? (
                    <span className="text-red-500">Sync failed</span>
@@ -91,8 +95,10 @@ export default function HomePage() {
           {/* Main Content */}
           <div className="px-4 pt-4">
 
-            <SyncLinkCard />
-
+              <div className="mb-4">
+                <SyncLinkCard variant="card" />
+              </div>
+              <br />
             {/* Recent Expenses Section */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>

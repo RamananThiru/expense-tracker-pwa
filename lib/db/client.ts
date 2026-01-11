@@ -24,10 +24,37 @@ export class ExpenseTrackerDB extends Dexie {
   }
 }
 
-export const db = new ExpenseTrackerDB();
+let _db: ExpenseTrackerDB | null = null
 
-// Helper for hooks to ensure DB is open (Dexie auto-opens, but for consistency if needed)
+function createDB() {
+  return new ExpenseTrackerDB()
+}
+
+// Helper for hooks to ensure DB is open. Handles VersionError by deleting and recreating the DB.
 export const getDB = async () => {
-  return db;
+  if (!_db) {
+    _db = createDB()
+  }
+
+  try {
+    await _db.open()
+    return _db
+  } catch (err: any) {
+    // Handle Dexie VersionError: existing DB has higher version than current schema
+    if (err && err.name === 'VersionError') {
+      console.warn('IndexedDB version mismatch detected, deleting DB and recreating...', err)
+      try {
+        await Dexie.delete('expense-tracker-db')
+      } catch (delErr) {
+        console.error('Failed to delete old IndexedDB:', delErr)
+      }
+
+      _db = createDB()
+      await _db.open()
+      return _db
+    }
+
+    throw err
+  }
 }
 
