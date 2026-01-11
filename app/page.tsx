@@ -9,6 +9,7 @@ import { getCategoryColor } from "@/lib/constants/category-colors"
 import { useExpenses } from "@/hooks/use-expenses"
 import { useReferenceData } from "@/hooks/use-reference-data"
 import { useSync } from "@/hooks/use-sync"
+import SyncLinkCard from "@/components/sync-link-card"
 
 export default function HomePage() {
   const router = useRouter()
@@ -48,6 +49,8 @@ export default function HomePage() {
 
   const monthlyTotal = expensesWithDetails.reduce((sum, exp) => sum + exp.amount, 0)
 
+ 
+
   return (
     <AppLayout>
       <div className="w-full h-full bg-background pb-24">
@@ -71,6 +74,7 @@ export default function HomePage() {
                 <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin text-primary" : "text-muted-foreground"}`} />
                 {syncError && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />}
               </button>
+              <SyncLinkCard />
             </div>
             {/* Minimal Sync Status */}
             {(syncError || lastSyncTime) && (
@@ -87,6 +91,8 @@ export default function HomePage() {
           {/* Main Content */}
           <div className="px-4 pt-4">
 
+            <SyncLinkCard />
+
             {/* Recent Expenses Section */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>
@@ -102,23 +108,27 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {expensesWithDetails.map((expense) => {
-                    const colors = getCategoryColor(expense.categoryName)
-                    
-                    return (
-                      <ExpenseListItem
-                        key={expense.local_id} 
-                        category={expense.categoryName}
-                        subcategory={expense.description || ""} 
-                        date={new Date(expense.expense_date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                        amount={expense.amount}
-                        categoryColor={colors}
-                      />
-                    )
-                  })}
+                  <div className="max-h-80 overflow-y-auto p-2 border border-border rounded-md">
+                    <div className="space-y-3">
+                      {expensesWithDetails.slice(0, 10).map((expense) => {
+                        const colors = getCategoryColor(expense.categoryName)
+
+                        return (
+                          <ExpenseListItem
+                            key={expense.local_id}
+                            category={expense.categoryName}
+                            subcategory={expense.description || ""}
+                            date={new Date(expense.expense_date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                            amount={expense.amount}
+                            categoryColor={colors}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

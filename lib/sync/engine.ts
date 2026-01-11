@@ -48,6 +48,25 @@ export const SyncEngine = {
     for (const item of pending) {
       await syncSingleExpense(item, supabase, db)
     }
+  },
+
+  async syncCategories() {
+    console.log("[SyncEngine] Syncing categories...")
+    const db = await getDB()
+    const supabase = createClient()
+    await fetchAndStore(supabase, db, "categories")
+    await this.setLastSyncTime(new Date().toISOString())
+    console.log("[SyncEngine] Categories synced.")
+  },
+
+  async syncSubcategories() {
+    console.log("[SyncEngine] Syncing subcategories...")
+    const db = await getDB()
+    const supabase = createClient()
+    // table name in supabase is 'sub_categories', local store is 'subcategories'
+    await fetchAndStore(supabase, db, "sub_categories", "subcategories")
+    await this.setLastSyncTime(new Date().toISOString())
+    console.log("[SyncEngine] Subcategories synced.")
   }
 }
 
