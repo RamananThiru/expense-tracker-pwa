@@ -7,8 +7,10 @@ import { RefreshCw } from "lucide-react"
 export default function SyncPageComponent() {
   const [isSyncingCategories, setIsSyncingCategories] = useState(false)
   const [isSyncingSubcategories, setIsSyncingSubcategories] = useState(false)
+  const [isSyncingExpenses, setIsSyncingExpenses] = useState(false)
   const [categoriesStatus, setCategoriesStatus] = useState<string | null>(null)
   const [subcategoriesStatus, setSubcategoriesStatus] = useState<string | null>(null)
+  const [expensesStatus, setExpensesStatus] = useState<string | null>(null)
 
   async function handleSyncCategories() {
     try {
@@ -38,11 +40,25 @@ export default function SyncPageComponent() {
     }
   }
 
+  async function handleSyncExpenses() {
+    try {
+      setExpensesStatus(null)
+      setIsSyncingExpenses(true)
+      await SyncEngine.syncExpenses()
+      setExpensesStatus("Synced")
+    } catch (err) {
+      console.error(err)
+      setExpensesStatus("Failed")
+    } finally {
+      setIsSyncingExpenses(false)
+    }
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Sync / Import from Supabase</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 border border-border rounded-md bg-card">
           <h2 className="font-semibold">Categories</h2>
           <p className="text-sm text-muted-foreground mb-3">Download categories from Supabase into IndexedDB.</p>
@@ -74,6 +90,23 @@ export default function SyncPageComponent() {
             </button>
 
             <div className="text-sm text-muted-foreground">{subcategoriesStatus ?? '—'}</div>
+          </div>
+        </div>
+
+        <div className="p-4 border border-border rounded-md bg-card">
+          <h2 className="font-semibold">Expenses</h2>
+          <p className="text-sm text-muted-foreground mb-3">Download expenses from Supabase into IndexedDB.</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncExpenses}
+              disabled={isSyncingExpenses}
+              className="px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncingExpenses ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
+              <span>Sync Expenses</span>
+            </button>
+
+            <div className="text-sm text-muted-foreground">{expensesStatus ?? '—'}</div>
           </div>
         </div>
       </div>

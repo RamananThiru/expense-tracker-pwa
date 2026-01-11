@@ -67,6 +67,15 @@ export const SyncEngine = {
     await fetchAndStore(supabase, db, "sub_categories", "subcategories")
     await this.setLastSyncTime(new Date().toISOString())
     console.log("[SyncEngine] Subcategories synced.")
+  },
+
+  async syncExpenses() {
+    console.log("[SyncEngine] Syncing expenses...")
+    const db = await getDB()
+    const supabase = createClient()
+    await downloadInitialExpenses(supabase, db)
+    await this.setLastSyncTime(new Date().toISOString())
+    console.log("[SyncEngine] Expenses synced.")
   }
 }
 
