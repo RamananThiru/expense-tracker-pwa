@@ -20,7 +20,7 @@ export const SyncEngine = {
     const db = await getDB()
     const supabase = createClient()
 
-    if ((await db.count("categories")) > 0) {
+    if ((await db.categories.count()) > 0) {
       console.log("Bootstrap skipped: Data exists.")
       return
     }
@@ -38,7 +38,7 @@ export const SyncEngine = {
     const db = await getDB()
     const supabase = createClient()
 
-    const allExpenses = await db.getAll("expenses")
+    const allExpenses = await db.expenses.toArray()
     const pending = allExpenses.filter(e => e.synced === false)
 
     console.log(`[SyncEngine] Found ${pending.length} unsynced items.`)
@@ -62,9 +62,8 @@ async function fetchAndStore(
   const { data, error } = await supabase.from(tableName).select("*")
   if (error) throw error
   if (data) {
-    const tx = db.transaction(storeName, "readwrite")
-    await Promise.all(data.map((item: any) => tx.store.put(item)))
-    await tx.done
+    // Dexie bulkPut
+    await db.table(storeName).bulkPut(data)
   }
 }
 
@@ -72,12 +71,8 @@ async function downloadInitialExpenses(supabase: any, db: any) {
   const { data, error } = await supabase.from("expenses").select("*")
   if (error) throw error
   if (data) {
-    const tx = db.transaction("expenses", "readwrite")
-    for (const exp of data) {
-      // Mark as synced since it came from server
-      await tx.store.put({ ...exp, synced: true })
-    }
-    await tx.done
+    const expenses = data.map((exp: any) => ({ ...exp, synced: true }))
+    await db.expenses.bulkPut(expenses)
   }
 }
 
@@ -92,7 +87,7 @@ async function syncSingleExpense(item: LocalExpense, supabase: any, db: any) {
       .eq('id', id)
 
     if (!error) {
-      await db.put("expenses", { ...item, synced: true })
+      await db.expenses.put({ ...item, synced: true })
     } else {
       console.error("Failed to update", item, error)
     }
@@ -105,7 +100,7 @@ async function syncSingleExpense(item: LocalExpense, supabase: any, db: any) {
       .single()
 
     if (!error && data) {
-      await db.put("expenses", { ...item, id: data.id, synced: true })
+      await db.expenses.put({ ...item, id: data.id, synced: true })
     } else {
       console.error("Failed to insert", item, error)
     }

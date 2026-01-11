@@ -15,7 +15,7 @@ export function useReferenceData() {
       const db = await getDB()
       if (!db) return
 
-      const all = await db.getAll("categories")
+      const all = await db.categories.toArray()
       // Sort by sort_order
       all.sort((a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0))
 
@@ -58,7 +58,7 @@ export function useSubCategories(categoryId: number | null) {
         const db = await getDB()
         if (!db) return
 
-        const all = await db.getAllFromIndex("subcategories", "by-category", categoryId)
+        const all = await db.subcategories.where('category_id').equals(categoryId).toArray()
         // Sort by sort_order
         all.sort((a: SubCategory, b: SubCategory) => (a.sort_order || 0) - (b.sort_order || 0))
 

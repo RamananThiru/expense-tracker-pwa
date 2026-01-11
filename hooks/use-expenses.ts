@@ -17,7 +17,7 @@ export function useExpenses() {
 
       // Get all expenses
       // Ideally use a cursor or index for paging
-      const all = await db.getAll("expenses")
+      const all = await db.expenses.toArray()
 
       setExpenses(all)
     } catch (err) {
@@ -44,7 +44,7 @@ export function useExpenses() {
       created_at: new Date().toISOString(),
     }
 
-    await db.add("expenses", newExpense)
+    await db.expenses.add(newExpense)
     window.dispatchEvent(new Event(DB_CHANGE_EVENT))
   }
 
@@ -54,7 +54,7 @@ export function useExpenses() {
     if (!localId) return
     const db = await getDB()
     if (!db) return
-    await db.delete("expenses", localId)
+    await db.expenses.delete(localId)
     window.dispatchEvent(new Event(DB_CHANGE_EVENT))
   }
 

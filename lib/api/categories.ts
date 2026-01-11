@@ -10,7 +10,7 @@ import type { Category } from "@/lib/types/database.types"
 /**
  * Fetch all active categories ordered by sort_order
  * @returns Array of active categories
- */
+*/
 export async function fetchCategories(): Promise<Category[]> {
   try {
     const supabase = await createClient()

@@ -1,91 +1,33 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import Dexie, { type Table } from 'dexie';
 import type { Category, SubCategory } from '@/lib/types/database.types';
 import type { LocalExpense } from '@/lib/sync/types';
 
-// Define the IDB Schema
-export interface ExpenseTrackerDB extends DBSchema {
-  categories: {
-    key: number;
-    value: Category;
-    indexes: {};
-  };
-  subcategories: {
-    key: number;
-    value: SubCategory;
-    indexes: { 'by-category': number };
-  };
-  expenses: {
-    key: number; // local_id (Auto-inc)
-    value: LocalExpense;
-    indexes: {
-      'by-synced': boolean;
-      'by-date': string;
-    };
-  };
-}
+export class ExpenseTrackerDB extends Dexie {
+  categories!: Table<Category>;
+  subcategories!: Table<SubCategory>;
+  expenses!: Table<LocalExpense>;
 
-const DB_NAME = 'expense-tracker-db';
-const DB_VERSION = 3; // Bump to v3 for numeric index
+  constructor() {
+    super('expense-tracker-db');
 
-let dbPromise: Promise<IDBPDatabase<ExpenseTrackerDB>> | null = null;
-
-export const getDB = () => {
-  if (typeof window === 'undefined') return Promise.resolve(null as any);
-
-  if (!dbPromise) {
-    dbPromise = openDB<ExpenseTrackerDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion, newVersion, transaction) {
-        console.log(`[DB] Upgrading from ${oldVersion} to ${newVersion}`);
-        setupCategories(db);
-        setupSubcategories(db);
-        setupExpenses(db, transaction);
-      },
-      blocked(currentVersion, blockedVersion, event) {
-        console.error(`[DB] Database upgrade blocked! Current: ${currentVersion}, Blocked: ${blockedVersion}. Please close other tabs.`)
-        alert("Database update blocked. Please reload the page or close other tabs.")
-      },
-      blocking(currentVersion, blockedVersion, event) {
-        console.warn(`[DB] This connection is blocking a version upgrade. Closing...`)
-        dbPromise = null
-      },
-      terminated() {
-        console.error("[DB] Connection terminated abnormally")
-        dbPromise = null
-      }
+    // Schema definition
+    // Note: IndexedDB is robust, but changing schema requires version bump.
+    // keys: 
+    // - categories: id
+    // - subcategories: id, category_id
+    // - expenses: ++local_id (auto-inc), synced, expense_date
+    this.version(4).stores({
+      categories: 'id',
+      subcategories: 'id, category_id', // category_id index
+      expenses: '++local_id, synced, expense_date'
     });
   }
-  return dbPromise;
-};
-
-// --- Helpers ---
-
-function setupCategories(db: IDBPDatabase<ExpenseTrackerDB>) {
-  if (!db.objectStoreNames.contains('categories')) {
-    db.createObjectStore('categories', { keyPath: 'id' });
-  }
 }
 
-function setupSubcategories(db: IDBPDatabase<ExpenseTrackerDB>) {
-  if (!db.objectStoreNames.contains('subcategories')) {
-    const subStore = db.createObjectStore('subcategories', { keyPath: 'id' });
-    subStore.createIndex('by-category', 'category_id');
-  }
-}
+export const db = new ExpenseTrackerDB();
 
-function setupExpenses(db: IDBPDatabase<ExpenseTrackerDB>, tx: any) {
-  if (!db.objectStoreNames.contains('expenses')) {
-    const expenseStore = db.createObjectStore('expenses', {
-      keyPath: 'local_id',
-      autoIncrement: true
-    });
-    expenseStore.createIndex('by-synced', 'synced');
-    expenseStore.createIndex('by-date', 'expense_date');
-  } else {
-    // Upgrade logic for existing store if needed
-    const store = tx.objectStore('expenses');
-    if (!store.indexNames.contains('by-synced')) {
-      store.createIndex('by-synced', 'synced');
-    }
-  }
+// Helper for hooks to ensure DB is open (Dexie auto-opens, but for consistency if needed)
+export const getDB = async () => {
+  return db;
 }
 
