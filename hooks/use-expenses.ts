@@ -15,9 +15,8 @@ export function useExpenses() {
       const db = await getDB()
       if (!db) return
 
-      // Get all expenses
-      // Ideally use a cursor or index for paging
-      const all = await db.expenses.toArray()
+      // Get last 10 expenses ordered by created_at (newest first)
+      const all = await db.expenses.orderBy('created_at').reverse().limit(10).toArray()
 
       setExpenses(all)
     } catch (err) {

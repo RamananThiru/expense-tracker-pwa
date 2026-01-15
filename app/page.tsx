@@ -41,7 +41,6 @@ export default function HomePage() {
   */
 
   // Derived state to map category names
-  // Derived state to map category names
   const expensesWithDetails = useMemo(() => {
     return expenses.map(e => {
        const cat = categories.find(c => c.id === e.category_id)
