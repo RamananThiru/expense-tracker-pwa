@@ -2,16 +2,14 @@
 
 import { useEffect, useState, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { RefreshCw, CheckCircle2, AlertCircle } from "lucide-react"
 import { AppLayout } from "@/components/app-layout"
 import { ExpenseListItem } from "@/components/expense-list-item"
 import { ExpenseTrackerHeader } from "@/components/expense-tracker-header"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ExpenseActionsCard } from "@/components/expense-actions-card"
 import { getCategoryColor } from "@/lib/constants/category-colors"
 import { useExpenses } from "@/hooks/use-expenses"
 import { useReferenceData } from "@/hooks/use-reference-data"
 import { useSync } from "@/hooks/use-sync"
-import SyncLinkCard from "@/components/sync-link-card"
 
 export default function HomePage() {
   const router = useRouter()
@@ -60,7 +58,7 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="w-full h-full bg-background pb-24">
-        <div className="px-4 pt-4 space-y-4">
+        <div className="px-4 pt-4 space-y-3">
           {/* Card 1: Expense Tracker Info & Sync */}
           <ExpenseTrackerHeader 
             monthlyTotal={monthlyTotal}
@@ -71,11 +69,10 @@ export default function HomePage() {
             mounted={mounted}
           />
 
-          <div className="mb-4">
-            <SyncLinkCard variant="card" />
-          </div>
+          {/* Actions Card */}
+          <ExpenseActionsCard onSync={sync} isSyncing={isSyncing} />
 
-          <div className="mb-8">
+          <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>
 
             {loadingExpenses ? (
