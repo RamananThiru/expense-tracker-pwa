@@ -56,7 +56,7 @@ export default function SyncPageComponent() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Sync / Import from Supabase</h1>
+      <h1 className="text-2xl font-bold mb-4">Sync / Supabase Import</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 border border-border rounded-md bg-card">

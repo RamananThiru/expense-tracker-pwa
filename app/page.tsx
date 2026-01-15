@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { RefreshCw, CheckCircle2, AlertCircle } from "lucide-react"
 import { AppLayout } from "@/components/app-layout"
 import { ExpenseListItem } from "@/components/expense-list-item"
+import { ExpenseTrackerHeader } from "@/components/expense-tracker-header"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getCategoryColor } from "@/lib/constants/category-colors"
 import { useExpenses } from "@/hooks/use-expenses"
 import { useReferenceData } from "@/hooks/use-reference-data"
@@ -58,86 +60,60 @@ export default function HomePage() {
   return (
     <AppLayout>
       <div className="w-full h-full bg-background pb-24">
-          {/* Header Section */}
-          <div className="sticky top-0 bg-background z-10 border-b border-border">
-            <div className="px-6 py-4 flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Expense Tracker</h1>
-                <p className="text-lg font-semibold text-muted-foreground mt-2">
-                  ₹{monthlyTotal.toLocaleString()} spent this month
-                </p>
-              </div>
-              
-              {/* Sync Button */}
-              <button 
-                onClick={sync} 
-                disabled={isSyncing}
-                className="p-2 rounded-full hover:bg-secondary transition-colors relative"
-                aria-label="Sync now"
-              >
-                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin text-primary" : "text-muted-foreground"}`} />
-                {syncError && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />}
-              </button>
-            </div>
-            {/* Minimal Sync Status */}
-            {(syncError || (mounted && lastSyncTime)) && (
-              <div className="px-6 pb-2 text-xs text-muted-foreground flex items-center justify-end gap-1">
-                 {syncError ? (
-                   <span className="text-red-500">Sync failed</span>
-                 ) : (
-                   <span>Synced {lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                 )}
-              </div>
-            )}
+        <div className="px-4 pt-4 space-y-4">
+          {/* Card 1: Expense Tracker Info & Sync */}
+          <ExpenseTrackerHeader 
+            monthlyTotal={monthlyTotal}
+            sync={sync}
+            isSyncing={isSyncing}
+            syncError={syncError}
+            lastSyncTime={lastSyncTime}
+            mounted={mounted}
+          />
+
+          <div className="mb-4">
+            <SyncLinkCard variant="card" />
           </div>
 
-          {/* Main Content */}
-          <div className="px-4 pt-4">
+          <div className="mb-8">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>
 
-              <div className="mb-4">
-                <SyncLinkCard variant="card" />
+            {loadingExpenses ? (
+              <div className="flex justify-center p-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-              <br />
-            {/* Recent Expenses Section */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Recent Expenses</h2>
+            ) : expenses.length === 0 ? (
+              <div className="text-center p-4 text-muted-foreground">
+                <p>No expenses yet.</p>
+                <p className="text-xs mt-1">Add one to get started.</p>
+              </div>
+            ) : mounted ? (
+              <div className="space-y-3">
+                <div className="max-h-80 overflow-y-auto p-2 border border-border rounded-md">
+                  <div className="space-y-3">
+                    {expensesWithDetails.slice(0, 10).map((expense) => {
+                      const colors = getCategoryColor(expense.categoryName)
 
-              {loadingExpenses ? (
-                <div className="flex justify-center p-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : expenses.length === 0 ? (
-                <div className="text-center p-4 text-muted-foreground">
-                  <p>No expenses yet.</p>
-                  <p className="text-xs mt-1">Add one to get started.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="max-h-80 overflow-y-auto p-2 border border-border rounded-md">
-                    <div className="space-y-3">
-                      {expensesWithDetails.slice(0, 10).map((expense) => {
-                        const colors = getCategoryColor(expense.categoryName)
-
-                        return (
-                          <ExpenseListItem
-                            key={expense.local_id}
-                            category={expense.categoryName}
-                            subcategory={expense.description || ""}
-                            date={new Date(expense.expense_date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                            amount={expense.amount}
-                            categoryColor={colors}
-                          />
-                        )
-                      })}
-                    </div>
+                      return (
+                        <ExpenseListItem
+                          key={expense.local_id}
+                          category={expense.categoryName}
+                          subcategory={expense.description || ""}
+                          date={new Date(expense.expense_date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          amount={expense.amount}
+                          categoryColor={colors}
+                        />
+                      )
+                    })}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
+        </div>
       </div>
     </AppLayout>
   )
