@@ -15,12 +15,13 @@ export function useExpenses() {
       const db = await getDB()
       if (!db) return
 
-      // Get last 10 expenses ordered by created_at (newest first)
-      const all = await db.expenses.orderBy('created_at').reverse().limit(10).toArray()
+      // Get last 10 expenses ordered by expense_date (newest first)
+      const all = await db.expenses.orderBy('expense_date').reverse().limit(10).toArray()
 
       setExpenses(all)
     } catch (err) {
       console.error("Failed to fetch expenses:", err)
+      // TODO: Show error to user
     } finally {
       setIsLoading(false)
     }

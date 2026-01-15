@@ -16,7 +16,7 @@ export class ExpenseTrackerDB extends Dexie {
     // - categories: id
     // - subcategories: id, category_id
     // - expenses: ++local_id (auto-inc), synced, expense_date
-    this.version(4).stores({
+    this.version(6).stores({
       categories: 'id',
       subcategories: 'id, category_id', // category_id index
       expenses: '++local_id, synced, expense_date'
