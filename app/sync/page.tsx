@@ -1,7 +1,7 @@
 "use client"
 
 import { AppLayout } from "@/components/app-layout"
-import SyncPageComponent from "@/components/sync-page"
+import SyncPageComponent from "@/components/home/sync-page"
 
 export default function SyncPage() {
   return (
