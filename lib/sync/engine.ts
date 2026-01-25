@@ -125,7 +125,26 @@ async function downloadInitialExpenses(supabase: any, db: any) {
   const { data, error } = await supabase.from("expenses").select("*")
   if (error) throw error
   if (data) {
-    const expenses = data.map((exp: any) => ({ ...exp, synced: true }))
+    // 1. Fetch all existing local expenses to map Supabase IDs to local_ids
+    const existingExpenses = await db.expenses.toArray()
+    const idMap = new Map<number, number>()
+
+    existingExpenses.forEach((e: any) => {
+      if (e.id) {
+        idMap.set(e.id, e.local_id)
+      }
+    })
+
+    // 2. Attach local_id if match found, otherwise let it be undefined (new insert)
+    const expenses = data.map((exp: any) => {
+      const existingLocalId = idMap.get(exp.id)
+      return {
+        ...exp,
+        synced: true,
+        ...(existingLocalId !== undefined && { local_id: existingLocalId })
+      }
+    })
+
     await db.expenses.bulkPut(expenses)
   }
 }
