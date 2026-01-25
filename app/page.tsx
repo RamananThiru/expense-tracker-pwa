@@ -15,7 +15,7 @@ export default function HomePage() {
   const router = useRouter()
   
   // Hooks
-  const { expenses, isLoading: loadingExpenses, refreshExpenses } = useExpenses()
+  const { expenses, monthlyTotal, isLoading: loadingExpenses, refreshExpenses } = useExpenses()
   const { categories, isLoading: loadingCategories } = useReferenceData()
   const { sync, isSyncing, lastSyncTime, error: syncError } = useSync()
   const [mounted, setMounted] = useState(false)
@@ -50,8 +50,6 @@ export default function HomePage() {
        }
     })
   }, [expenses, categories])
-
-  const monthlyTotal = expensesWithDetails.reduce((sum, exp) => sum + exp.amount, 0)
 
  
 

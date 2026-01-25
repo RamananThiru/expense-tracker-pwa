@@ -98,6 +98,8 @@ async function fetchAndStore(
 async function fetchFromSupabase(supabase: any, tableName: string) {
   console.log(`[SyncEngine] Fetching ${tableName} from Supabase...`)
   const { data, error } = await supabase.from(tableName).select("*")
+  console.log(`Printing the data object ${data}`)
+
 
   if (error) {
     console.error(`[SyncEngine] Error fetching ${tableName}:`, error)
