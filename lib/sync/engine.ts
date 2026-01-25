@@ -87,11 +87,35 @@ async function fetchAndStore(
   tableName: string,
   storeName: string = tableName
 ) {
+  const data = await fetchFromSupabase(supabase, tableName)
+  if (data && data.length > 0) {
+    await storeInIndexedDB(db, storeName, data)
+  } else {
+    console.log(`[SyncEngine] No records to store for ${storeName}.`)
+  }
+}
+
+async function fetchFromSupabase(supabase: any, tableName: string) {
+  console.log(`[SyncEngine] Fetching ${tableName} from Supabase...`)
   const { data, error } = await supabase.from(tableName).select("*")
-  if (error) throw error
-  if (data) {
-    // Dexie bulkPut
+
+  if (error) {
+    console.error(`[SyncEngine] Error fetching ${tableName}:`, error)
+    throw error
+  }
+
+  console.log(`[SyncEngine] Fetched ${data?.length || 0} records from ${tableName}.`)
+  return data
+}
+
+async function storeInIndexedDB(db: any, storeName: string, data: any[]) {
+  console.log(`[SyncEngine] Storing ${data.length} records into ${storeName}...`)
+  try {
     await db.table(storeName).bulkPut(data)
+    console.log(`[SyncEngine] Successfully stored records in ${storeName}.`)
+  } catch (err) {
+    console.error(`[SyncEngine] Failed to store records in ${storeName}:`, err)
+    throw err
   }
 }
 

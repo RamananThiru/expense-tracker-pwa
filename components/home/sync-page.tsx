@@ -18,6 +18,7 @@ export default function SyncPageComponent() {
       setIsSyncingCategories(true)
       await SyncEngine.syncCategories()
       setCategoriesStatus("Synced")
+      window.dispatchEvent(new Event('expense-tracker-db-change'))
     } catch (err) {
       console.error(err)
       setCategoriesStatus("Failed")
@@ -32,6 +33,7 @@ export default function SyncPageComponent() {
       setIsSyncingSubcategories(true)
       await SyncEngine.syncSubcategories()
       setSubcategoriesStatus("Synced")
+      window.dispatchEvent(new Event('expense-tracker-db-change'))
     } catch (err) {
       console.error(err)
       setSubcategoriesStatus("Failed")
