@@ -25,7 +25,7 @@ create table sub_categories (
   unique (category_id, code)
 );
 
-``
+```
 
 
 ```
