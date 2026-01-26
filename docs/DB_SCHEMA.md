@@ -1,3 +1,5 @@
+# Outdated
+
 ```
 create table categories (
   id bigint generated always as identity primary key,
