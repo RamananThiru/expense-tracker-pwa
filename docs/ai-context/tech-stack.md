@@ -274,26 +274,6 @@ VS Code:
 Required:
   - Chrome DevTools (IndexedDB inspection)
   - React Developer Tools
-  - Lighthouse (PWA audit)
-```
-
----
-
-## Testing Stack (Future)
-
-```yaml
-Unit Testing:
-  Framework: Vitest (recommended)
-  Library: React Testing Library
-  Coverage: 80%+ target
-
-Integration Testing:
-  Framework: Vitest
-  Focus: Hook testing, sync flows
-
-E2E Testing:
-  Framework: Playwright (recommended)
-  Focus: User workflows, PWA features
 ```
 
 ---
@@ -353,18 +333,6 @@ Total JS: < 500KB (gzipped)
 CSS: < 50KB (gzipped)
 Images: WebP, optimized
 ```
-
-### Lighthouse Scores (Target)
-
-```yaml
-Performance: 95+
-Accessibility: 100
-Best Practices: 100
-SEO: 90+
-PWA: 100
-```
-
----
 
 ## Third-Party Dependencies
 

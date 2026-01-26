@@ -256,5 +256,4 @@ npm run lint
 - Foundation: `docs/ai-context/`
 
 **Last Updated**: January 2026  
-**Maintainer**: Your Name  
 **Version**: 1.0.0-beta
