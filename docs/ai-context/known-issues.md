@@ -6,19 +6,6 @@
 
 ---
 
-## 🔴 Critical (Blocking Core Features)
-
-### Analytics Page - No Data Integration
-- **Location**: `app/analytics/page.tsx`
-- **Symptom**: Shows mock data instead of real expenses
-- **Cause**: Not connected to `use-expenses.ts` hook
-- **Impact**: Users cannot see actual spending patterns
-- **Fix Required**: 
-  ```typescript
-  // Replace mock data with:
-  const { expenses } = useExpenses()
-  // Then aggregate for charts (group by category, date range, etc.)
-  ```
 
 ---
 

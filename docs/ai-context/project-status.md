@@ -58,14 +58,10 @@
 **For detailed bug list with locations and fixes, see:** `docs/ai-context/known-issues.md`
 
 **Current Issues:**
-- 🔴 **Analytics page** - Shows mock data, needs real expense data integration
 - 🟡 **No theme toggle** - Only one theme available (no dark/light mode switch)
 
 ---
 
-## 🚧 Next To Add
-
-- Analytics page data integration (HIGH PRIORITY)
 
 ---
 

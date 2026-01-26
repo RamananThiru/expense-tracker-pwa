@@ -166,7 +166,7 @@ expenses (user data)
 app/
 ├── page.tsx               # Home - Recent expenses list
 ├── add/page.tsx           # Add expense form
-├── analytics/page.tsx     # Charts (⚠️ needs data integration)
+├── analytics/page.tsx     # Charts with real data from API
 ├── categories/page.tsx    # Manage categories
 ├── subcategories/page.tsx # Manage subcategories
 ├── settings/page.tsx      # App settings

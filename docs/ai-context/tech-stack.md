@@ -167,6 +167,14 @@ Custom Hooks:
   - use-reference-data.ts: Categories/subcategories
   - use-mobile.ts: Mobile detection
   - use-toast.ts: Notifications
+
+API Modules:
+  - lib/api/analytics.ts: Analytics data aggregation
+  - lib/api/analytics/category-breakdown.ts: Category-based expense aggregation
+  - lib/api/analytics/weekly-spending.ts: Weekly expense aggregation
+  - lib/api/analytics/summary-stats.ts: Summary statistics calculation
+  - lib/api/analytics/date-utils.ts: Date range utilities
+  - lib/api/analytics-client.ts: Client-side API calls
 ```
 
 ---
